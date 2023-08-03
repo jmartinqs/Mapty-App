@@ -1,13 +1,9 @@
 'use strict';
 
-// prettier-ignore
-
-let map, mapEvent;
-
 class Workout {
   date = new Date();
   id = (Date.now() + '').slice(-10);
-  clicks = 0;
+  // clicks = 0;
 
   constructor(coords, distance, duration) {
     this.coords = coords; // [lat,lng]
@@ -42,9 +38,9 @@ class Workout {
     }
   }
 
-  click() {
-    this.clicks++;
-  }
+  // click() {
+  //   this.clicks++;
+  // }
 }
 
 class Running extends Workout {
@@ -102,10 +98,14 @@ class App {
   #workouts = [];
 
   constructor() {
+    // Getting position
     this._getPosition();
-    // Marker function
+
+    // Get data from local storage
+    this._getLocalStorage();
+
+    // Event handlers
     form.addEventListener('submit', this._newWorkout.bind(this));
-    // Toggling between Workout type (clycing = elevation , Running = cadence)
     inputType.addEventListener('change', this._toggleElevationField);
     containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   }
@@ -136,20 +136,25 @@ class App {
     this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
 
     // Previous map used by the teacher
-    //   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    //     attribution:
-    //       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    //   }).addTo(map);
+    // L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //   attribution:
+    //     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    // }).addTo(this.#map);
 
     // Map layer by google
     L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
     }).addTo(this.#map);
 
-    // Clicks on map function
+    // Clicks on map handler
     this.#map.on('click', this._showForm.bind(this));
+
+    this.#workouts.forEach(workout => {
+      this._renderWorkoutMarker(workout);
+    });
   }
 
+  // Workout left grid
   _showForm(mapE) {
     this.#mapEvent = mapE;
     form.classList.remove('hidden');
@@ -212,19 +217,22 @@ class App {
 
     // Add new object to workout array
     this.#workouts.push(workout);
-    console.log(workout);
 
     // Render workout on map as marker
-    this.renderWorkoutMarker(workout);
+    this._renderWorkoutMarker(workout);
 
     // Render workout on list
     this._renderWorkout(workout);
 
     // Hide form + clear input fields
     this._hideForm();
+
+    // Local storage to all workouts
+    this._setLocalStorage();
   }
 
-  renderWorkoutMarker(workout) {
+  // Marker
+  _renderWorkoutMarker(workout) {
     L.marker(workout.coords)
       .addTo(this.#map)
       .bindPopup(
@@ -289,20 +297,19 @@ class App {
             <span class="workout__unit">m</span>
           </div>
           </li>`;
+
     // Insert the form into html
     form.insertAdjacentHTML('afterend', html);
   }
 
   _moveToPopup(e) {
     const workoutElement = e.target.closest('.workout');
-    // console.log(workoutElement);
 
     if (!workoutElement) return;
 
     const workout = this.#workouts.find(
       work => work.id === workoutElement.dataset.id
     );
-    console.log(workout);
 
     this.#map.setView(workout.coords, this.#mapZoomLevel, {
       animate: true,
@@ -311,10 +318,31 @@ class App {
       },
     });
 
-    //
-    workout.click();
+    // workout.click();
+  }
+
+  // Savings workouts in local storage
+  _setLocalStorage() {
+    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+  }
+
+  // Getting saved workout data to show
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem('workouts'));
+
+    if (!data) return;
+
+    this.#workouts = data;
+    this.#workouts.forEach(workout => {
+      this._renderWorkout(workout);
+    });
+  }
+
+  // Reset input for console
+  reset() {
+    localStorage.removeItem('workouts');
+    location.reload();
   }
 }
 
 const app = new App();
-app._getPosition();
