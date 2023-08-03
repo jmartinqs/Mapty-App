@@ -338,7 +338,7 @@ class App {
     });
   }
 
-  // Reset input for console
+  // Reset input for the app
   reset() {
     localStorage.removeItem('workouts');
     location.reload();
